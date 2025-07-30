@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { FaMicrophone } from "react-icons/fa";
 import { jsPDF } from "jspdf";
 
 export default function App() {
@@ -16,6 +15,7 @@ export default function App() {
   const [success, setSuccess] = useState(false);
   const timerRef = useRef(null);
 
+  // Timer for recording
   useEffect(() => {
     if (recording) {
       timerRef.current = setInterval(() => setRecordTime((prev) => prev + 1), 1000);
@@ -44,8 +44,7 @@ export default function App() {
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/mp3" });
         setRecordedBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioURL(url);
+        setAudioURL(URL.createObjectURL(blob));
         setShowWave(false);
       };
 
@@ -65,9 +64,9 @@ export default function App() {
 
   const handleUpload = async () => {
     if (!file && !recordedBlob) return alert("Please upload or record an MP3 file.");
-
     setLoading(true);
     setSuccess(false);
+
     try {
       const formData = new FormData();
       if (file) formData.append("audio", file);
@@ -76,7 +75,10 @@ export default function App() {
         formData.append("audio", mp3File);
       }
 
-      const response = await axios.post("http://localhost:5000/upload", formData);
+      const response = await axios.post(
+        "https://speech-backend-m9wr.onrender.com/upload",
+        formData
+      );
       setTranscript(response.data.transcript);
       setSuccess(true);
     } catch (error) {
@@ -111,13 +113,11 @@ export default function App() {
   };
 
   const handleDownloadTXT = () => {
-    const element = document.createElement("a");
-    const fileBlob = new Blob([transcript], { type: "text/plain" });
-    element.href = URL.createObjectURL(fileBlob);
-    element.download = "transcript.txt";
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    const blob = new Blob([transcript], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "transcript.txt";
+    link.click();
   };
 
   return (
@@ -127,38 +127,28 @@ export default function App() {
         🎧 Speech-to-Text App
       </header>
 
-      {/* Upload Section (Always visible) */}
-      <div className="mt-6">
-        <label className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-lg transition cursor-pointer">
-          Upload MP3 File
-          <input
-            type="file"
-            accept=".mp3"
-            onChange={(e) => {
-              setFile(e.target.files[0]);
-              setTranscript("");
-              setSuccess(false);
-              setRecordedBlob(null);
-              setAudioURL(null);
-            }}
-            className="hidden"
-          />
-        </label>
-        {file && <p className="mt-2 text-sm text-gray-700 text-center">{file.name}</p>}
+      {/* Upload Section */}
+      <div className="mt-8 animate-fade-in text-center">
+        <input
+          type="file"
+          accept=".mp3"
+          onChange={(e) => {
+            setFile(e.target.files[0]);
+            setTranscript("");
+            setSuccess(false);
+          }}
+          className="file:px-4 file:py-2 file:rounded-full file:border-0 file:bg-sky-600 file:text-white hover:file:bg-sky-700 cursor-pointer"
+        />
+        {file && <p className="text-sm text-gray-700 mt-2">{file.name}</p>}
       </div>
 
-      {/* Card Container */}
-      <div className="animate-fade-in bg-white/80 backdrop-blur-lg shadow-2xl border border-gray-300 rounded-3xl px-8 py-10 w-full max-w-2xl mt-8">
+      {/* Card */}
+      <div className="animate-fade-in bg-white/80 backdrop-blur-lg shadow-2xl border border-gray-300 rounded-3xl px-8 py-10 w-full max-w-2xl mt-6">
         <p className="text-center text-gray-600 mb-4">
           Upload an MP3 file or record your voice to get a transcript.
         </p>
 
-        {(file || recordedBlob) && (
-          <p className="text-center text-sm text-gray-700 mb-4">
-            {file?.name || "🎙️ Recorded Audio Ready"}
-          </p>
-        )}
-
+        {/* Recording Controls */}
         <div className="flex flex-wrap justify-center items-center gap-4 mb-4">
           {!recording && (
             <button
@@ -191,12 +181,14 @@ export default function App() {
           </button>
         </div>
 
+        {/* Audio Preview */}
         {audioURL && (
           <div className="text-center mb-4">
             <audio controls src={audioURL} className="mx-auto" />
           </div>
         )}
 
+        {/* Voice Waveform */}
         {showWave && (
           <div className="flex justify-center mb-6">
             <div className="flex gap-1 items-end h-10">
@@ -211,20 +203,17 @@ export default function App() {
           </div>
         )}
 
+        {/* Transcript Result */}
         {transcript && (
           <div className="mt-8 animate-fade-in">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2 border-b pb-1">Transcript:</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2 border-b pb-1">
+              Transcript:
+            </h2>
             <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg max-h-60 overflow-y-auto text-gray-700">
               {transcript}
             </div>
 
-            {success && (
-              <p className="mt-2 text-green-600 text-center font-medium">
-                ✅ Transcription completed successfully!
-              </p>
-            )}
-
-            {/* Action Buttons */}
+            {/* Buttons */}
             <div className="flex flex-wrap gap-4 mt-4 justify-center">
               <button
                 onClick={handleCopy}
@@ -240,11 +229,18 @@ export default function App() {
               </button>
               <button
                 onClick={handleDownloadTXT}
-                className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition"
+                className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded transition"
               >
-                Download as .txt
+                Download as TXT
               </button>
             </div>
+
+            {/* Success Message */}
+            {success && (
+              <p className="text-green-600 font-medium text-center mt-4 animate-fade-in">
+                ✅ Transcription completed successfully!
+              </p>
+            )}
           </div>
         )}
       </div>
