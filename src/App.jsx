@@ -76,7 +76,7 @@ export default function App() {
       }
 
       const response = await axios.post(
-        "https://speech-backend-m9wr.onrender.com/upload",
+        "https://speech-to-text-backend-50hv.onrender.com/upload",
         formData
       );
       setTranscript(response.data.transcript);
